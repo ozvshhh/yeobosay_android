@@ -34,6 +34,8 @@ jobs:
 
       - name: Prisma validate
         run: npx prisma validate
+        env:
+          DATABASE_URL: "postgresql://user:password@localhost:5432/yeobosay"
 
       - name: Lint
         run: npm run lint --if-present
