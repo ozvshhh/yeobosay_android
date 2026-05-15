@@ -905,6 +905,3 @@ components:
           $ref: "#/components/schemas/CallSession"
         error:
           $ref: "#/components/schemas/NullableApiError"
-```
-
----
