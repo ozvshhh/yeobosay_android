@@ -1,0 +1,114 @@
+{
+  "flow": "MVP_CALL_FLOW",
+  "version": "0.1.0",
+  "steps": [
+    {
+      "step": 1,
+      "actor": "Android",
+      "action": "POST /v1/calls/start",
+      "request": {
+        "userId": "elder_123",
+        "scheduleId": "schedule_123",
+        "callType": "MORNING_CHECKIN",
+        "source": "LOCAL_ALARM",
+        "clientStartedAt": "2026-05-13T09:00:00+09:00",
+        "timezone": "Asia/Seoul"
+      },
+      "response": {
+        "data": {
+          "callId": "call_mock_001",
+          "status": "RINGING",
+          "serverTime": "2026-05-13T00:00:00Z",
+          "ringTimeoutSeconds": 45
+        },
+        "error": null
+      }
+    },
+    {
+      "step": 2,
+      "actor": "Android",
+      "action": "POST /v1/calls/{callId}/events",
+      "request": {
+        "eventType": "USER_ACCEPTED",
+        "occurredAt": "2026-05-13T09:00:03+09:00",
+        "payload": {
+          "screen": "IncomingCallActivity"
+        }
+      },
+      "response": {
+        "data": {
+          "eventId": "event_mock_001",
+          "callId": "call_mock_001",
+          "stored": true,
+          "nextStatus": "ACCEPTED"
+        },
+        "error": null
+      }
+    },
+    {
+      "step": 3,
+      "actor": "Android",
+      "action": "POST /v1/calls/{callId}/realtime/offer",
+      "request": {
+        "sdpOffer": "MOCK_SDP_OFFER",
+        "clientCapabilities": {
+          "audio": true,
+          "dataChannel": true
+        },
+        "preferredVoice": "korean_default"
+      },
+      "response": {
+        "data": {
+          "sdpAnswer": "MOCK_SDP_ANSWER",
+          "realtimeSessionId": "rt_mock_001",
+          "model": "gpt-realtime",
+          "voice": "korean_default",
+          "expiresAt": "2026-05-13T00:10:00Z"
+        },
+        "error": null
+      }
+    },
+    {
+      "step": 4,
+      "actor": "Android",
+      "action": "POST /v1/calls/{callId}/events",
+      "request": {
+        "eventType": "WEBRTC_CONNECTED",
+        "occurredAt": "2026-05-13T09:00:06+09:00",
+        "payload": {
+          "connectionState": "CONNECTED"
+        }
+      },
+      "response": {
+        "data": {
+          "eventId": "event_mock_002",
+          "callId": "call_mock_001",
+          "stored": true,
+          "nextStatus": "ACTIVE"
+        },
+        "error": null
+      }
+    },
+    {
+      "step": 5,
+      "actor": "Android",
+      "action": "POST /v1/calls/{callId}/end",
+      "request": {
+        "endReason": "USER_HANGUP",
+        "endedAt": "2026-05-13T09:04:20+09:00",
+        "durationSeconds": 260,
+        "payload": {
+          "lastCallState": "ACTIVE"
+        }
+      },
+      "response": {
+        "data": {
+          "callId": "call_mock_001",
+          "status": "COMPLETED",
+          "endedAt": "2026-05-13T00:04:20Z"
+        },
+        "error": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,166 @@
+version: 0.1.0
+name: YeoboSay Call WebSocket Contract
+status: planned
+phase: phase-2-sideband
+
+description: >
+  WebSocket contract for real-time synchronization between the Android client
+  and the YeoboSay backend during an active AI voice call.
+  This contract is planned for second-phase sideband integration and is not
+  required for the first MVP.
+
+connection:
+  url: wss://api.yeoboseyo.app/v1/ws/calls/{callId}
+  auth:
+    preferred: Authorization Bearer token in WebSocket handshake header
+    fallback: accessToken query parameter for development only
+  pathParams:
+    callId:
+      type: string
+      example: call_123
+
+commonFields:
+  type:
+    type: string
+    required: true
+  callId:
+    type: string
+    required: false
+  sentAt:
+    type: string
+    format: date-time
+    required: true
+  payload:
+    type: object
+    required: false
+
+clientToServer:
+  CLIENT_READY:
+    description: Android client is ready after WebSocket connection.
+    example:
+      type: CLIENT_READY
+      callId: call_123
+      sentAt: "2026-05-13T09:00:05+09:00"
+
+  CLIENT_STATUS:
+    description: Android client reports current call state and device status.
+    payload:
+      callState:
+        type: string
+        enum:
+          - RINGING
+          - ACCEPTED
+          - CONNECTING
+          - ACTIVE
+          - ENDING
+          - ENDED
+          - FAILED
+      networkType:
+        type: string
+        example: WIFI
+      isSpeakerOn:
+        type: boolean
+      isMuted:
+        type: boolean
+    example:
+      type: CLIENT_STATUS
+      callId: call_123
+      sentAt: "2026-05-13T09:01:00+09:00"
+      payload:
+        callState: ACTIVE
+        networkType: WIFI
+        isSpeakerOn: true
+        isMuted: false
+
+  CALL_END_ACK:
+    description: Android acknowledges a server-driven call end request.
+    payload:
+      reason:
+        type: string
+        enum:
+          - SERVER_TERMINATED
+          - MAX_DURATION_EXCEEDED
+          - UNKNOWN
+    example:
+      type: CALL_END_ACK
+      callId: call_123
+      sentAt: "2026-05-13T09:04:22+09:00"
+      payload:
+        reason: SERVER_TERMINATED
+
+  PONG:
+    description: Android responds to server PING.
+    example:
+      type: PONG
+      sentAt: "2026-05-13T09:02:01+09:00"
+
+serverToClient:
+  END_CALL:
+    description: Backend asks Android to end the call.
+    payload:
+      reason:
+        type: string
+        enum:
+          - MAX_DURATION_EXCEEDED
+          - SERVER_TERMINATED
+          - AI_ENDED
+          - UNKNOWN
+      message:
+        type: string
+    example:
+      type: END_CALL
+      callId: call_123
+      sentAt: "2026-05-13T09:04:20+09:00"
+      payload:
+        reason: MAX_DURATION_EXCEEDED
+        message: 통화를 마무리합니다.
+
+  CALL_STATUS_UPDATED:
+    description: Backend sends latest call status to Android.
+    payload:
+      status:
+        type: string
+        enum:
+          - CREATED
+          - RINGING
+          - ACCEPTED
+          - CONNECTING
+          - ACTIVE
+          - ENDING
+          - COMPLETED
+          - REJECTED
+          - MISSED
+          - FAILED
+    example:
+      type: CALL_STATUS_UPDATED
+      callId: call_123
+      sentAt: "2026-05-13T09:01:00+09:00"
+      payload:
+        status: ACTIVE
+
+  RISK_ALERT_SENT:
+    description: Backend notifies Android that a guardian risk alert was sent.
+    payload:
+      riskLevel:
+        type: string
+        enum:
+          - NONE
+          - LOW
+          - MEDIUM
+          - HIGH
+          - EMERGENCY
+      guardianNotified:
+        type: boolean
+    example:
+      type: RISK_ALERT_SENT
+      callId: call_123
+      sentAt: "2026-05-13T09:02:00+09:00"
+      payload:
+        riskLevel: MEDIUM
+        guardianNotified: true
+
+  PING:
+    description: Backend sends heartbeat ping.
+    example:
+      type: PING
+      sentAt: "2026-05-13T09:02:00+09:00"
