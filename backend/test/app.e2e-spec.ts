@@ -2,29 +2,46 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-
-jest.mock('./../src/prisma/prisma.service', () => ({
-  PrismaService: jest.fn().mockImplementation(() => ({
-    onModuleInit: jest.fn(),
-    onModuleDestroy: jest.fn(),
-  })),
-}));
-
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma/prisma.service';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
+  let prisma: {
+    callSession: {
+      create: jest.Mock;
+      findUnique: jest.Mock;
+      update: jest.Mock;
+    };
+    conversationTurn: {
+      findMany: jest.Mock;
+    };
+    onModuleInit: jest.Mock;
+    onModuleDestroy: jest.Mock;
+  };
+
+  const startedAt = new Date('2026-05-16T05:00:00.000Z');
+  const expiresAt = new Date('2026-05-16T05:10:00.000Z');
 
   beforeEach(async () => {
+    prisma = {
+      callSession: {
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      conversationTurn: {
+        findMany: jest.fn(),
+      },
+      onModuleInit: jest.fn(),
+      onModuleDestroy: jest.fn(),
+    };
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
       .overrideProvider(PrismaService)
-      .useValue({
-        onModuleInit: jest.fn(),
-        onModuleDestroy: jest.fn(),
-      })
+      .useValue(prisma)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -49,6 +66,124 @@ describe('AppController (e2e)', () => {
         });
         expect(new Date(body.timestamp).toISOString()).toBe(body.timestamp);
       });
+  });
+
+  it('/call-sessions (POST)', () => {
+    prisma.callSession.create.mockResolvedValue({
+      id: 'session-1',
+      status: 'ACTIVE',
+      startedAt,
+      endedAt: null,
+      expiresAt,
+    });
+
+    return request(app.getHttpServer())
+      .post('/call-sessions')
+      .expect(201)
+      .expect({
+        id: 'session-1',
+        status: 'ACTIVE',
+        startedAt: '2026-05-16T05:00:00.000Z',
+        endedAt: null,
+        expiresAt: '2026-05-16T05:10:00.000Z',
+      });
+  });
+
+  it('/call-sessions/:id (GET)', () => {
+    prisma.callSession.findUnique.mockResolvedValue({
+      id: 'session-1',
+      status: 'ACTIVE',
+      startedAt,
+      endedAt: null,
+      expiresAt,
+    });
+
+    return request(app.getHttpServer())
+      .get('/call-sessions/session-1')
+      .expect(200)
+      .expect({
+        id: 'session-1',
+        status: 'ACTIVE',
+        startedAt: '2026-05-16T05:00:00.000Z',
+        endedAt: null,
+        expiresAt: '2026-05-16T05:10:00.000Z',
+      });
+  });
+
+  it('/call-sessions/:id/turns (GET)', () => {
+    prisma.callSession.findUnique.mockResolvedValue({ id: 'session-1' });
+    prisma.conversationTurn.findMany.mockResolvedValue([
+      {
+        id: 'turn-1',
+        callSessionId: 'session-1',
+        role: 'USER',
+        text: '오늘 기분이 조금 외로워',
+        failed: false,
+        riskFlag: true,
+        riskType: 'EMOTIONAL_DISTRESS',
+        createdAt: startedAt,
+      },
+    ]);
+
+    return request(app.getHttpServer())
+      .get('/call-sessions/session-1/turns')
+      .expect(200)
+      .expect({
+        callSessionId: 'session-1',
+        turns: [
+          {
+            id: 'turn-1',
+            role: 'USER',
+            text: '오늘 기분이 조금 외로워',
+            failed: false,
+            riskFlag: true,
+            riskType: 'EMOTIONAL_DISTRESS',
+            createdAt: '2026-05-16T05:00:00.000Z',
+          },
+        ],
+      });
+  });
+
+  it('/call-sessions/:id/end (POST)', () => {
+    prisma.callSession.findUnique.mockResolvedValue({
+      id: 'session-1',
+      status: 'ACTIVE',
+      startedAt,
+      endedAt: null,
+      expiresAt,
+    });
+    prisma.callSession.update.mockResolvedValue({
+      id: 'session-1',
+      status: 'ENDED',
+      startedAt,
+      endedAt: startedAt,
+      expiresAt,
+    });
+
+    return request(app.getHttpServer())
+      .post('/call-sessions/session-1/end')
+      .expect(200)
+      .expect({
+        id: 'session-1',
+        status: 'ENDED',
+        startedAt: '2026-05-16T05:00:00.000Z',
+        endedAt: '2026-05-16T05:00:00.000Z',
+        expiresAt: '2026-05-16T05:10:00.000Z',
+      });
+  });
+
+  it('/call-sessions/:id/end (POST) returns 409 for ended sessions', () => {
+    prisma.callSession.findUnique.mockResolvedValue({
+      id: 'session-1',
+      status: 'ENDED',
+      startedAt,
+      endedAt: startedAt,
+      expiresAt,
+    });
+
+    return request(app.getHttpServer())
+      .post('/call-sessions/session-1/end')
+      .expect(409);
   });
 
   afterEach(async () => {

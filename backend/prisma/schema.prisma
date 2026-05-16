@@ -10,3 +10,37 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum CallSessionStatus {
+  ACTIVE
+  ENDED
+}
+
+enum ConversationRole {
+  USER
+  ASSISTANT
+}
+
+model CallSession {
+  id        String            @id @default(cuid())
+  status    CallSessionStatus @default(ACTIVE)
+  startedAt DateTime          @default(now())
+  endedAt   DateTime?
+  expiresAt DateTime
+  turns     ConversationTurn[]
+}
+
+model ConversationTurn {
+  id            String           @id @default(cuid())
+  callSessionId String
+  role          ConversationRole
+  text          String
+  failed        Boolean          @default(false)
+  riskFlag      Boolean          @default(false)
+  riskType      String?
+  createdAt     DateTime         @default(now())
+
+  callSession   CallSession      @relation(fields: [callSessionId], references: [id])
+
+  @@index([callSessionId])
+}
