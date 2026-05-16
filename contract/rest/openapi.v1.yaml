@@ -1,0 +1,907 @@
+openapi: 3.0.3
+
+info:
+  title: YeoboSay API Contract
+  version: 0.1.0
+  description: REST API contract between the YeoboSay Android client and NestJS backend.
+
+servers:
+  - url: http://localhost:3000
+    description: Local backend
+  - url: https://dev-api.yeoboseyo.app
+    description: Development backend
+  - url: https://api.yeoboseyo.app
+    description: Production backend
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: Devices
+  - name: Users
+  - name: CallSchedules
+  - name: Calls
+  - name: Realtime
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Backend health check
+      responses:
+        "200":
+          description: Backend health status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /v1/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login for guardian or test user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginApiResponse"
+
+  /v1/devices/register:
+    post:
+      tags:
+        - Devices
+      summary: Register Android device
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterDeviceRequest"
+      responses:
+        "200":
+          description: Device registration result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterDeviceApiResponse"
+
+  /v1/users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Get elder user profile
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserApiResponse"
+
+  /v1/users/{userId}/call-schedules:
+    get:
+      tags:
+        - CallSchedules
+      summary: Get call schedules for a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: Call schedule list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallSchedulesApiResponse"
+
+  /v1/calls/start:
+    post:
+      tags:
+        - Calls
+      summary: Start a call session
+      description: Creates a call session and stores it as RINGING. This does not start the WebRTC voice connection yet.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartCallRequest"
+      responses:
+        "200":
+          description: Created call session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartCallApiResponse"
+
+  /v1/calls/{callId}/events:
+    post:
+      tags:
+        - Calls
+      summary: Append call event
+      description: Stores Android call state events and updates the latest server-side call status.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CallId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCallEventRequest"
+      responses:
+        "200":
+          description: Stored call event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateCallEventApiResponse"
+
+  /v1/calls/{callId}/realtime/offer:
+    post:
+      tags:
+        - Realtime
+      summary: Exchange Android WebRTC SDP Offer for OpenAI Realtime SDP Answer
+      description: Backend receives Android SDP Offer, creates an OpenAI Realtime WebRTC session, and returns the SDP Answer.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CallId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RealtimeOfferRequest"
+      responses:
+        "200":
+          description: Realtime SDP Answer result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RealtimeOfferApiResponse"
+
+  /v1/calls/{callId}/end:
+    post:
+      tags:
+        - Calls
+      summary: End call session
+      description: Ends a call session with a final status derived from endReason.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CallId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EndCallRequest"
+      responses:
+        "200":
+          description: Ended call session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EndCallApiResponse"
+
+  /v1/calls/{callId}:
+    get:
+      tags:
+        - Calls
+      summary: Get call session
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CallId"
+      responses:
+        "200":
+          description: Call session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallSessionApiResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+      example: elder_123
+
+    CallId:
+      name: callId
+      in: path
+      required: true
+      schema:
+        type: string
+      example: call_123
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - ok
+        - service
+        - timestamp
+      properties:
+        ok:
+          type: boolean
+          example: true
+        service:
+          type: string
+          example: YeoboSay Backend
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-05-13T00:00:00Z"
+
+    ApiError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          $ref: "#/components/schemas/ErrorCode"
+        message:
+          type: string
+          example: 통화 세션을 찾을 수 없습니다.
+        details:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+    NullableApiError:
+      nullable: true
+      allOf:
+        - $ref: "#/components/schemas/ApiError"
+
+    ErrorCode:
+      type: string
+      enum:
+        - AUTH_REQUIRED
+        - TOKEN_EXPIRED
+        - INVALID_TOKEN
+        - FORBIDDEN
+        - USER_NOT_FOUND
+        - GUARDIAN_NOT_FOUND
+        - DEVICE_NOT_FOUND
+        - SCHEDULE_NOT_FOUND
+        - CALL_SESSION_NOT_FOUND
+        - CALL_INVALID_STATUS
+        - CALL_ALREADY_ENDED
+        - REALTIME_SDP_INVALID
+        - REALTIME_SESSION_CREATE_FAILED
+        - OPENAI_API_ERROR
+        - NOTIFICATION_SEND_FAILED
+        - VALIDATION_ERROR
+        - RATE_LIMITED
+        - INTERNAL_ERROR
+
+    UserRole:
+      type: string
+      enum:
+        - ELDER
+        - GUARDIAN
+        - ADMIN
+
+    Platform:
+      type: string
+      enum:
+        - ANDROID
+
+    CallType:
+      type: string
+      enum:
+        - MORNING_CHECKIN
+        - MEDICATION_REMINDER
+        - SCHEDULE_REMINDER
+        - FREE_TALK
+        - MANUAL_TEST
+
+    CallStatus:
+      type: string
+      enum:
+        - CREATED
+        - RINGING
+        - ACCEPTED
+        - CONNECTING
+        - ACTIVE
+        - ENDING
+        - COMPLETED
+        - REJECTED
+        - MISSED
+        - FAILED
+
+    CallEventType:
+      type: string
+      enum:
+        - CALL_RINGING
+        - USER_ACCEPTED
+        - USER_REJECTED
+        - CALL_MISSED
+        - WEBRTC_OFFER_CREATED
+        - WEBRTC_CONNECTING
+        - WEBRTC_CONNECTED
+        - WEBRTC_FAILED
+        - CALL_ACTIVE
+        - USER_HANGUP
+        - AI_END_REQUESTED
+        - CALL_ENDED
+        - NETWORK_ERROR
+        - PERMISSION_DENIED
+        - AUDIO_ROUTE_CHANGED
+
+    EndReason:
+      type: string
+      enum:
+        - USER_HANGUP
+        - AI_ENDED
+        - REJECTED
+        - MISSED
+        - NETWORK_ERROR
+        - PERMISSION_DENIED
+        - MAX_DURATION_EXCEEDED
+        - SERVER_TERMINATED
+        - UNKNOWN
+
+    RepeatDay:
+      type: string
+      enum:
+        - MON
+        - TUE
+        - WED
+        - THU
+        - FRI
+        - SAT
+        - SUN
+
+    SpeechSpeed:
+      type: string
+      enum:
+        - SLOW
+        - NORMAL
+
+    LoginRequest:
+      type: object
+      required:
+        - phoneNumber
+        - password
+      properties:
+        phoneNumber:
+          type: string
+          example: "01012345678"
+        password:
+          type: string
+          example: password
+
+    LoginResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - user
+      properties:
+        accessToken:
+          type: string
+          example: jwt_access_token
+        refreshToken:
+          type: string
+          example: jwt_refresh_token
+        user:
+          type: object
+          required:
+            - id
+            - role
+          properties:
+            id:
+              type: string
+              example: guardian_123
+            role:
+              $ref: "#/components/schemas/UserRole"
+
+    LoginApiResponse:
+      type: object
+      required:
+        - data
+        - error
+      properties:
+        data:
+          $ref: "#/components/schemas/LoginResponse"
+        error:
+          $ref: "#/components/schemas/NullableApiError"
+
+    RegisterDeviceRequest:
+      type: object
+      required:
+        - userId
+        - deviceUuid
+        - platform
+      properties:
+        userId:
+          type: string
+          example: elder_123
+        deviceUuid:
+          type: string
+          example: android-device-uuid
+        platform:
+          $ref: "#/components/schemas/Platform"
+        fcmToken:
+          type: string
+          nullable: true
+          example: fcm_token
+        appVersion:
+          type: string
+          nullable: true
+          example: 0.1.0
+
+    RegisterDeviceResponse:
+      type: object
+      required:
+        - deviceId
+        - registered
+      properties:
+        deviceId:
+          type: string
+          example: device_123
+        registered:
+          type: boolean
+          example: true
+
+    RegisterDeviceApiResponse:
+      type: object
+      required:
+        - data
+        - error
+      properties:
+        data:
+          $ref: "#/components/schemas/RegisterDeviceResponse"
+        error:
+          $ref: "#/components/schemas/NullableApiError"
+
+    User:
+      type: object
+      required:
+        - id
+        - name
+        - displayName
+        - preferredSpeechSpeed
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          example: elder_123
+        name:
+          type: string
+          example: 김영자
+        displayName:
+          type: string
+          example: 어머니
+        birthYear:
+          type: integer
+          nullable: true
+          example: 1942
+        preferredSpeechSpeed:
+          $ref: "#/components/schemas/SpeechSpeed"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-05-13T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-05-13T00:00:00Z"
+
+    UserApiResponse:
+      type: object
+      required:
+        - data
+        - error
+      properties:
+        data:
+          $ref: "#/components/schemas/User"
+        error:
+          $ref: "#/components/schemas/NullableApiError"
+
+    CallSchedule:
+      type: object
+      required:
+        - id
+        - userId
+        - callType
+        - hour
+        - minute
+        - repeatDays
+        - enabled
+        - timezone
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          example: schedule_123
+        userId:
+          type: string
+          example: elder_123
+        callType:
+          $ref: "#/components/schemas/CallType"
+        hour:
+          type: integer
+          minimum: 0
+          maximum: 23
+          example: 9
+        minute:
+          type: integer
+          minimum: 0
+          maximum: 59
+          example: 0
+        repeatDays:
+          type: array
+          items:
+            $ref: "#/components/schemas/RepeatDay"
+          example:
+            - MON
+            - TUE
+            - WED
+            - THU
+            - FRI
+        enabled:
+          type: boolean
+          example: true
+        timezone:
+          type: string
+          example: Asia/Seoul
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CallSchedulesResponse:
+      type: object
+      required:
+        - schedules
+      properties:
+        schedules:
+          type: array
+          items:
+            $ref: "#/components/schemas/CallSchedule"
+
+    CallSchedulesApiResponse:
+      type: object
+      required:
+        - data
+        - error
+      properties:
+        data:
+          $ref: "#/components/schemas/CallSchedulesResponse"
+        error:
+          $ref: "#/components/schemas/NullableApiError"
+
+    StartCallRequest:
+      type: object
+      required:
+        - userId
+        - callType
+        - source
+        - clientStartedAt
+        - timezone
+      properties:
+        userId:
+          type: string
+          example: elder_123
+        scheduleId:
+          type: string
+          nullable: true
+          example: schedule_123
+        callType:
+          $ref: "#/components/schemas/CallType"
+        source:
+          type: string
+          enum:
+            - LOCAL_ALARM
+            - FCM
+            - MANUAL_TEST
+          example: LOCAL_ALARM
+        clientStartedAt:
+          type: string
+          format: date-time
+          example: "2026-05-13T09:00:00+09:00"
+        timezone:
+          type: string
+          example: Asia/Seoul
+
+    StartCallResponse:
+      type: object
+      required:
+        - callId
+        - status
+        - serverTime
+        - ringTimeoutSeconds
+      properties:
+        callId:
+          type: string
+          example: call_123
+        status:
+          type: string
+          enum:
+            - RINGING
+          example: RINGING
+        serverTime:
+          type: string
+          format: date-time
+          example: "2026-05-13T00:00:00Z"
+        ringTimeoutSeconds:
+          type: integer
+          example: 45
+
+    StartCallApiResponse:
+      type: object
+      required:
+        - data
+        - error
+      properties:
+        data:
+          $ref: "#/components/schemas/StartCallResponse"
+        error:
+          $ref: "#/components/schemas/NullableApiError"
+
+    CreateCallEventRequest:
+      type: object
+      required:
+        - eventType
+        - occurredAt
+      properties:
+        eventType:
+          $ref: "#/components/schemas/CallEventType"
+        occurredAt:
+          type: string
+          format: date-time
+          example: "2026-05-13T09:00:03+09:00"
+        payload:
+          type: object
+          nullable: true
+          additionalProperties: true
+          example:
+            screen: IncomingCallActivity
+
+    CreateCallEventResponse:
+      type: object
+      required:
+        - eventId
+        - callId
+        - stored
+        - nextStatus
+      properties:
+        eventId:
+          type: string
+          example: event_123
+        callId:
+          type: string
+          example: call_123
+        stored:
+          type: boolean
+          example: true
+        nextStatus:
+          $ref: "#/components/schemas/CallStatus"
+
+    CreateCallEventApiResponse:
+      type: object
+      required:
+        - data
+        - error
+      properties:
+        data:
+          $ref: "#/components/schemas/CreateCallEventResponse"
+        error:
+          $ref: "#/components/schemas/NullableApiError"
+
+    RealtimeOfferRequest:
+      type: object
+      required:
+        - sdpOffer
+        - clientCapabilities
+      properties:
+        sdpOffer:
+          type: string
+          example: "v=0\no=- 4611731400430051336 2 IN IP4 127.0.0.1\n..."
+        clientCapabilities:
+          $ref: "#/components/schemas/ClientCapabilities"
+        preferredVoice:
+          type: string
+          nullable: true
+          example: korean_default
+
+    ClientCapabilities:
+      type: object
+      required:
+        - audio
+        - dataChannel
+      properties:
+        audio:
+          type: boolean
+          example: true
+        dataChannel:
+          type: boolean
+          example: true
+
+    RealtimeOfferResponse:
+      type: object
+      required:
+        - sdpAnswer
+        - realtimeSessionId
+        - model
+        - voice
+        - expiresAt
+      properties:
+        sdpAnswer:
+          type: string
+          example: "v=0\no=- 1000000000 2 IN IP4 127.0.0.1\n..."
+        realtimeSessionId:
+          type: string
+          example: rt_session_123
+        model:
+          type: string
+          example: gpt-realtime
+        voice:
+          type: string
+          example: korean_default
+        expiresAt:
+          type: string
+          format: date-time
+          example: "2026-05-13T00:10:00Z"
+
+    RealtimeOfferApiResponse:
+      type: object
+      required:
+        - data
+        - error
+      properties:
+        data:
+          $ref: "#/components/schemas/RealtimeOfferResponse"
+        error:
+          $ref: "#/components/schemas/NullableApiError"
+
+    EndCallRequest:
+      type: object
+      required:
+        - endReason
+        - endedAt
+      properties:
+        endReason:
+          $ref: "#/components/schemas/EndReason"
+        endedAt:
+          type: string
+          format: date-time
+          example: "2026-05-13T09:04:20+09:00"
+        durationSeconds:
+          type: integer
+          nullable: true
+          example: 260
+        payload:
+          type: object
+          nullable: true
+          additionalProperties: true
+          example:
+            lastCallState: ACTIVE
+
+    EndCallResponse:
+      type: object
+      required:
+        - callId
+        - status
+        - endedAt
+      properties:
+        callId:
+          type: string
+          example: call_123
+        status:
+          $ref: "#/components/schemas/CallStatus"
+        endedAt:
+          type: string
+          format: date-time
+          example: "2026-05-13T00:04:20Z"
+
+    EndCallApiResponse:
+      type: object
+      required:
+        - data
+        - error
+      properties:
+        data:
+          $ref: "#/components/schemas/EndCallResponse"
+        error:
+          $ref: "#/components/schemas/NullableApiError"
+
+    CallSession:
+      type: object
+      required:
+        - id
+        - userId
+        - callType
+        - status
+      properties:
+        id:
+          type: string
+          example: call_123
+        userId:
+          type: string
+          example: elder_123
+        scheduleId:
+          type: string
+          nullable: true
+          example: schedule_123
+        callType:
+          $ref: "#/components/schemas/CallType"
+        status:
+          $ref: "#/components/schemas/CallStatus"
+        realtimeSessionId:
+          type: string
+          nullable: true
+          example: rt_session_123
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        acceptedAt:
+          type: string
+          format: date-time
+          nullable: true
+        activeAt:
+          type: string
+          format: date-time
+          nullable: true
+        endedAt:
+          type: string
+          format: date-time
+          nullable: true
+        durationSeconds:
+          type: integer
+          nullable: true
+          example: 260
+        endReason:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/EndReason"
+
+    CallSessionApiResponse:
+      type: object
+      required:
+        - data
+        - error
+      properties:
+        data:
+          $ref: "#/components/schemas/CallSession"
+        error:
+          $ref: "#/components/schemas/NullableApiError"
