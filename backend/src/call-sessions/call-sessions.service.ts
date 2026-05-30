@@ -442,7 +442,7 @@ export class CallSessionsService {
 
   private async createFirstGreetingAudio(
     callSessionId: string,
-  ): Promise<FirstGreetingAudio | null> {
+  ): Promise<FirstGreetingAudio> {
     try {
       const audio = await this.openAiService.synthesizeSpeech(
         AUTO_CONVERSATION_FIRST_GREETING,
@@ -456,7 +456,7 @@ export class CallSessionsService {
         `First greeting TTS generation failed: callSessionId=${callSessionId}`,
         error instanceof Error ? error.stack : undefined,
       );
-      return null;
+      throw new BadGatewayException('First greeting audio generation failed.');
     }
   }
 

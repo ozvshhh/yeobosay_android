@@ -191,6 +191,23 @@ describe('CallSessionsService', () => {
     );
   });
 
+  it('fails auto conversation session creation when first greeting audio fails', async () => {
+    prisma.callSession.create.mockResolvedValue({
+      ...baseSession,
+      mode: CallSessionMode.AUTO_CONVERSATION,
+      currentStep: ConversationStep.GREETING,
+    });
+    prisma.conversationTurn.create.mockResolvedValue({});
+    openAiService.synthesizeSpeech.mockRejectedValue(new Error('TTS failed'));
+
+    await expect(
+      service.create({ mode: 'auto_conversation' }),
+    ).rejects.toBeInstanceOf(BadGatewayException);
+    expect(openAiService.synthesizeSpeech).toHaveBeenCalledWith(
+      '안녕하세요 왕송길 어르신 AI통화 서비스 세요입니다!',
+    );
+  });
+
   it('returns an existing call session', async () => {
     prisma.callSession.findUnique.mockResolvedValue(baseSession);
 
