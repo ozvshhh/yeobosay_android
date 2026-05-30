@@ -204,22 +204,22 @@ private fun HomeCallScreen(
                 Text(
                     text = "YeoboSay",
                     color = OneUiInk,
-                    fontSize = 38.sp,
-                    lineHeight = 42.sp,
+                    fontSize = 42.sp,
+                    lineHeight = 48.sp,
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
                     text = state.statusText,
                     color = OneUiMuted,
-                    fontSize = 18.sp,
-                    lineHeight = 25.sp,
+                    fontSize = 21.sp,
+                    lineHeight = 30.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
                     text = state.socketStatusText,
                     color = OneUiMuted.copy(alpha = 0.74f),
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
+                    fontSize = 15.sp,
+                    lineHeight = 21.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }
@@ -235,7 +235,7 @@ private fun HomeCallScreen(
                 Text(
                     text = if (state.isRequestingTestCall) "전화 요청 중" else "테스트 전화 요청",
                     color = OneUiInk,
-                    fontSize = 17.sp,
+                    fontSize = 19.sp,
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -276,7 +276,7 @@ private fun HomeCallScreen(
                         .fillMaxWidth()
                         .height(52.dp),
                 ) {
-                    Text("응답 재생 중지", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("응답 재생 중지", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -318,7 +318,7 @@ private fun OneUiActionButton(
         ),
         modifier = modifier.height(54.dp),
     ) {
-        Text(text = text, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        Text(text = text, fontSize = 19.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -341,14 +341,14 @@ private fun AcceptButtonSizeSetting(
             Text(
                 text = "설정",
                 color = OneUiInk,
-                fontSize = 22.sp,
-                lineHeight = 28.sp,
+                fontSize = 25.sp,
+                lineHeight = 32.sp,
                 fontWeight = FontWeight.ExtraBold,
             )
             Text(
                 text = "전화받기 버튼 크기",
                 color = OneUiMuted,
-                fontSize = 16.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -392,7 +392,7 @@ private fun AcceptSizeButton(
         Text(
             text = text,
             color = textColor,
-            fontSize = 16.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
         )
     }
@@ -437,7 +437,7 @@ private fun IncomingCallScreen(
                 Text(
                     text = "수신 중",
                     color = OneUiInk.copy(alpha = 0.76f),
-                    fontSize = 17.sp,
+                    fontSize = 19.sp,
                     fontWeight = FontWeight.ExtraBold,
                 )
             }
@@ -449,8 +449,8 @@ private fun IncomingCallScreen(
             Text(
                 text = incomingCall.callerName,
                 color = OneUiInk,
-                fontSize = 48.sp,
-                lineHeight = 54.sp,
+                fontSize = 54.sp,
+                lineHeight = 60.sp,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
             )
@@ -458,8 +458,8 @@ private fun IncomingCallScreen(
             Text(
                 text = incomingCall.message.ifBlank { "AI 안부 전화" },
                 color = OneUiInk.copy(alpha = 0.55f),
-                fontSize = 21.sp,
-                lineHeight = 27.sp,
+                fontSize = 24.sp,
+                lineHeight = 31.sp,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
             )
@@ -474,7 +474,7 @@ private fun IncomingCallScreen(
                 Text(
                     text = "어르신 안부 확인 전화",
                     color = OneUiInk.copy(alpha = 0.50f),
-                    fontSize = 15.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -500,7 +500,7 @@ private fun IncomingCallScreen(
                     size = acceptButtonSize,
                     iconSize = if (state.acceptButtonSize == AcceptButtonSize.Large) 44.dp else 34.dp,
                     iconRotation = -8f,
-                    labelSize = 18.sp,
+                    labelSize = 21.sp,
                     enabled = !state.isAcceptingIncomingCall && !state.isDecliningIncomingCall,
                     onClick = onAccept,
                 )
@@ -510,7 +510,7 @@ private fun IncomingCallScreen(
                     gradient = Brush.verticalGradient(listOf(CallRedLight, CallRedDeep)),
                     size = 84.dp,
                     iconSize = 36.dp,
-                    labelSize = 18.sp,
+                    labelSize = 21.sp,
                     enabled = !state.isAcceptingIncomingCall && !state.isDecliningIncomingCall,
                     onClick = onDecline,
                 )
@@ -546,7 +546,7 @@ private fun ActiveCallScreen(
             Text(
                 text = if (state.callElapsedSeconds == 0L) "통화 중..." else formatElapsed(state.callElapsedSeconds),
                 color = OneUiInk.copy(alpha = 0.48f),
-                fontSize = 22.sp,
+                fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(modifier = Modifier.height(15.dp))
@@ -555,15 +555,15 @@ private fun ActiveCallScreen(
             Text(
                 text = "여보세요",
                 color = OneUiInk,
-                fontSize = 38.sp,
-                lineHeight = 44.sp,
+                fontSize = 44.sp,
+                lineHeight = 51.sp,
                 fontWeight = FontWeight.ExtraBold,
             )
             Text(
                 text = "AI 안부 전화",
                 color = OneUiInk.copy(alpha = 0.56f),
-                fontSize = 18.sp,
-                lineHeight = 24.sp,
+                fontSize = 21.sp,
+                lineHeight = 29.sp,
                 fontWeight = FontWeight.SemiBold,
             )
 
@@ -593,8 +593,8 @@ private fun ActiveCallScreen(
                     Text(
                         text = "통화가 시작되면 안부 대화가 여기에 기록됩니다.",
                         color = OneUiInk.copy(alpha = 0.42f),
-                        fontSize = 17.sp,
-                        lineHeight = 24.sp,
+                        fontSize = 20.sp,
+                        lineHeight = 29.sp,
                         fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center,
                     )
@@ -739,7 +739,7 @@ private fun ActiveCallControls(
                     .fillMaxWidth()
                     .height(48.dp),
             ) {
-                Text("응답 재생 중지", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text("응답 재생 중지", fontSize = 17.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -750,8 +750,8 @@ private fun ActiveCallControls(
                 else -> "녹음 버튼을 눌러 말씀해 주세요."
             },
             color = OneUiInk.copy(alpha = 0.58f),
-            fontSize = 15.sp,
-            lineHeight = 20.sp,
+            fontSize = 18.sp,
+            lineHeight = 25.sp,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
         )
@@ -837,8 +837,8 @@ private fun ControlButton(
         Text(
             text = label,
             color = OneUiInk.copy(alpha = if (enabled) 0.76f else 0.38f),
-            fontSize = 14.sp,
-            lineHeight = 18.sp,
+            fontSize = 16.sp,
+            lineHeight = 21.sp,
             fontWeight = FontWeight.ExtraBold,
             textAlign = TextAlign.Center,
         )
@@ -860,8 +860,8 @@ private fun ErrorCard(
                 text = it,
                 modifier = Modifier.padding(15.dp),
                 color = Color(0xFF6E1915),
-                fontSize = 15.sp,
-                lineHeight = 21.sp,
+                fontSize = 17.sp,
+                lineHeight = 24.sp,
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -899,15 +899,15 @@ private fun MessageBubble(message: CallMessage) {
                 Text(
                     text = if (message.riskFlag) "$label · 위험 감지" else label,
                     color = contentColor.copy(alpha = 0.70f),
-                    fontSize = 12.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(modifier = Modifier.height(5.dp))
                 Text(
                     text = message.text,
                     color = contentColor,
-                    fontSize = 18.sp,
-                    lineHeight = 26.sp,
+                    fontSize = 20.sp,
+                    lineHeight = 30.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }
@@ -953,14 +953,14 @@ private fun ActiveMessageBubble(message: CallMessage) {
             Text(
                 text = if (message.riskFlag) "$label · 확인 필요" else label,
                 color = textColor.copy(alpha = 0.66f),
-                fontSize = 12.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.ExtraBold,
             )
             Text(
                 text = message.text,
                 color = textColor,
-                fontSize = 17.sp,
-                lineHeight = 25.sp,
+                fontSize = 20.sp,
+                lineHeight = 30.sp,
                 fontWeight = FontWeight.Medium,
             )
         }
