@@ -10,7 +10,6 @@ import com.yeobosay.app.data.IncomingCallEvent
 import com.yeobosay.app.data.YeoboSayApi
 import com.yeobosay.app.voice.AudioPlayer
 import com.yeobosay.app.voice.AudioRecorder
-import com.yeobosay.app.voice.GreetingSpeaker
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,7 +73,6 @@ class CallViewModel(application: Application) : AndroidViewModel(application) {
     private val invitationSocket = CallInvitationSocket()
     private val recorder = AudioRecorder(application.applicationContext)
     private val player = AudioPlayer(application.applicationContext)
-    private val greetingSpeaker = GreetingSpeaker(application.applicationContext)
 
     private val _uiState = MutableStateFlow(CallUiState())
     val uiState: StateFlow<CallUiState> = _uiState.asStateFlow()
@@ -249,7 +247,6 @@ class CallViewModel(application: Application) : AndroidViewModel(application) {
             maxRecordingJob = null
             if (_uiState.value.isRecording) recorder.cancel()
             player.stop()
-            greetingSpeaker.stop(invokeCallback = false)
 
             _uiState.update {
                 it.copy(
@@ -341,7 +338,6 @@ class CallViewModel(application: Application) : AndroidViewModel(application) {
 
                 if (isAutoConversation) {
                     playFirstGreeting(
-                        greetingText = greetingText,
                         audioBase64 = conversationPolicy?.firstGreetingAudioBase64,
                     )
                 }
@@ -376,10 +372,19 @@ class CallViewModel(application: Application) : AndroidViewModel(application) {
         callStartedAtMillis = 0L
     }
 
-    private fun playFirstGreeting(
-        greetingText: String,
-        audioBase64: String?,
-    ) {
+    private fun playFirstGreeting(audioBase64: String?) {
+        val serverAudioBase64 = audioBase64?.takeIf { it.isNotBlank() }
+        if (serverAudioBase64 == null) {
+            _uiState.update {
+                it.copy(
+                    isPlaying = false,
+                    statusText = "첫 인사 음성을 받을 수 없습니다.",
+                    errorText = "서버 첫 인사 음성이 없어 재생하지 않았습니다.",
+                )
+            }
+            return
+        }
+
         val onComplete = {
             _uiState.update {
                 it.copy(
@@ -389,11 +394,7 @@ class CallViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        if (!audioBase64.isNullOrBlank()) {
-            player.playBase64Mp3(audioBase64, onComplete)
-        } else {
-            greetingSpeaker.speak(greetingText, onComplete)
-        }
+        player.playBase64Mp3(serverAudioBase64, onComplete)
     }
 
     fun toggleRecording() {
@@ -518,7 +519,6 @@ class CallViewModel(application: Application) : AndroidViewModel(application) {
 
     fun stopPlayback() {
         player.stop()
-        greetingSpeaker.stop(invokeCallback = false)
         _uiState.update { it.copy(isPlaying = false, statusText = "재생을 중지했습니다.") }
     }
 
@@ -528,7 +528,6 @@ class CallViewModel(application: Application) : AndroidViewModel(application) {
         maxRecordingJob?.cancel()
         recorder.cancel()
         player.stop()
-        greetingSpeaker.shutdown()
         super.onCleared()
     }
 }
