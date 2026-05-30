@@ -13,7 +13,17 @@ datasource db {
 
 enum CallSessionStatus {
   ACTIVE
+  PROCESSING_TURN
+  WAITING_FOR_USER
+  AI_SPEAKING
+  ENDING
   ENDED
+  EXPIRED
+}
+
+enum CallSessionMode {
+  MANUAL_RECORDING
+  AUTO_CONVERSATION
 }
 
 enum ConversationRole {
@@ -21,26 +31,67 @@ enum ConversationRole {
   ASSISTANT
 }
 
+enum ConversationStep {
+  GREETING
+  WELLBEING
+  MEAL
+  HEALTH
+  MEDICATION
+  SLEEP
+  SCHEDULE
+  MOOD
+  FREE_TALK
+  CLOSING
+}
+
+enum ConversationTurnStatus {
+  UPLOADED
+  TRANSCRIBING
+  TRANSCRIBED
+  RESPONDING
+  RESPONDED
+  SYNTHESIZING
+  COMPLETED
+  FAILED_STT
+  FAILED_LLM
+  FAILED_TTS
+  FAILED_UNKNOWN
+}
+
 model CallSession {
-  id        String            @id @default(cuid())
-  status    CallSessionStatus @default(ACTIVE)
-  startedAt DateTime          @default(now())
-  endedAt   DateTime?
-  expiresAt DateTime
-  turns     ConversationTurn[]
+  id              String             @id @default(cuid())
+  status          CallSessionStatus  @default(ACTIVE)
+  mode            CallSessionMode    @default(MANUAL_RECORDING)
+  currentStep     ConversationStep?
+  targetTurnCount Int                @default(5)
+  turnCount       Int                @default(0)
+  riskFlag        Boolean            @default(false)
+  riskType        String?
+  endReason       String?
+  startedAt       DateTime           @default(now())
+  endedAt         DateTime?
+  expiresAt       DateTime
+  turns           ConversationTurn[]
 }
 
 model ConversationTurn {
-  id            String           @id @default(cuid())
-  callSessionId String
-  role          ConversationRole
-  text          String
-  failed        Boolean          @default(false)
-  riskFlag      Boolean          @default(false)
-  riskType      String?
-  createdAt     DateTime         @default(now())
+  id               String                 @id @default(cuid())
+  callSessionId    String
+  clientTurnId     String?
+  role             ConversationRole
+  text             String
+  status           ConversationTurnStatus @default(COMPLETED)
+  conversationStep ConversationStep?
+  bargeIn          Boolean                @default(false)
+  failed           Boolean                @default(false)
+  errorCode        String?
+  riskFlag         Boolean                @default(false)
+  riskType         String?
+  completedAt      DateTime?
+  createdAt        DateTime               @default(now())
 
-  callSession   CallSession      @relation(fields: [callSessionId], references: [id])
+  callSession CallSession @relation(fields: [callSessionId], references: [id])
 
+  @@unique([callSessionId, clientTurnId])
   @@index([callSessionId])
 }
