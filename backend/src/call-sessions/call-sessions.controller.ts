@@ -3,6 +3,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Body,
   Param,
   Post,
   UploadedFile,
@@ -22,6 +23,7 @@ import {
 import { CallSessionResponseDto } from './call-session-response.dto';
 import { CallSessionsService } from './call-sessions.service';
 import { ConversationTurnListResponseDto } from './conversation-turn-response.dto';
+import { CreateCallSessionDto } from './create-call-session.dto';
 import { VoiceTurnResponseDto } from './voice-turn-response.dto';
 
 const MAX_AUDIO_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -32,9 +34,10 @@ export class CallSessionsController {
   constructor(private readonly callSessionsService: CallSessionsService) {}
 
   @Post()
+  @ApiBody({ type: CreateCallSessionDto, required: false })
   @ApiCreatedResponse({ type: CallSessionResponseDto })
-  create(): Promise<CallSessionResponseDto> {
-    return this.callSessionsService.create();
+  create(@Body() dto: CreateCallSessionDto): Promise<CallSessionResponseDto> {
+    return this.callSessionsService.create(dto);
   }
 
   @Get(':id')

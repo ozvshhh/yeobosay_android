@@ -5,7 +5,13 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CallSessionStatus, ConversationRole } from '@prisma/client';
+import {
+  CallSessionMode,
+  CallSessionStatus,
+  ConversationRole,
+  ConversationStep,
+  ConversationTurnStatus,
+} from '@prisma/client';
 import { DemoLoggerService } from '../common/demo-logger.service';
 import { OpenAiService } from '../openai/openai.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -13,6 +19,33 @@ import { CallSessionsService } from './call-sessions.service';
 
 const now = new Date('2026-05-16T05:00:00.000Z');
 const expiresAt = new Date('2026-05-16T05:10:00.000Z');
+const baseSession = {
+  id: 'session-1',
+  status: CallSessionStatus.ACTIVE,
+  mode: CallSessionMode.MANUAL_RECORDING,
+  currentStep: null,
+  turnCount: 0,
+  targetTurnCount: 5,
+  riskFlag: false,
+  riskType: null,
+  endReason: null,
+  startedAt: now,
+  endedAt: null,
+  expiresAt,
+};
+const baseSessionResponse = {
+  id: 'session-1',
+  status: 'ACTIVE',
+  mode: 'manual_recording',
+  currentStep: null,
+  turnCount: 0,
+  targetTurnCount: 5,
+  riskFlag: false,
+  riskType: null,
+  startedAt: '2026-05-16T05:00:00.000Z',
+  endedAt: null,
+  expiresAt: '2026-05-16T05:10:00.000Z',
+};
 
 describe('CallSessionsService', () => {
   let service: CallSessionsService;
@@ -85,23 +118,14 @@ describe('CallSessionsService', () => {
   });
 
   it('creates an active call session with a 10 minute expiration', async () => {
-    prisma.callSession.create.mockResolvedValue({
-      id: 'session-1',
-      status: CallSessionStatus.ACTIVE,
-      startedAt: now,
-      endedAt: null,
-      expiresAt,
-    });
+    prisma.callSession.create.mockResolvedValue(baseSession);
 
-    await expect(service.create()).resolves.toEqual({
-      id: 'session-1',
-      status: 'ACTIVE',
-      startedAt: '2026-05-16T05:00:00.000Z',
-      endedAt: null,
-      expiresAt: '2026-05-16T05:10:00.000Z',
-    });
+    await expect(service.create()).resolves.toEqual(baseSessionResponse);
     expect(prisma.callSession.create).toHaveBeenCalledWith({
       data: {
+        mode: CallSessionMode.MANUAL_RECORDING,
+        currentStep: null,
+        targetTurnCount: 5,
         startedAt: now,
         expiresAt,
       },
@@ -112,22 +136,61 @@ describe('CallSessionsService', () => {
     );
   });
 
-  it('returns an existing call session', async () => {
-    prisma.callSession.findUnique.mockResolvedValue({
-      id: 'session-1',
-      status: CallSessionStatus.ACTIVE,
-      startedAt: now,
-      endedAt: null,
-      expiresAt,
+  it('creates an auto conversation session with the first assistant greeting', async () => {
+    prisma.callSession.create.mockResolvedValue({
+      ...baseSession,
+      mode: CallSessionMode.AUTO_CONVERSATION,
+      currentStep: ConversationStep.GREETING,
     });
+    prisma.conversationTurn.create.mockResolvedValue({});
 
-    await expect(service.findOne('session-1')).resolves.toEqual({
-      id: 'session-1',
-      status: 'ACTIVE',
-      startedAt: '2026-05-16T05:00:00.000Z',
-      endedAt: null,
-      expiresAt: '2026-05-16T05:10:00.000Z',
+    await expect(
+      service.create({ mode: 'auto_conversation' }),
+    ).resolves.toEqual({
+      ...baseSessionResponse,
+      mode: 'auto_conversation',
+      currentStep: 'greeting',
+      audioPolicy: {
+        silenceTimeoutMs: 3000,
+        maxUtteranceMs: 30000,
+        uploadMimeType: 'audio/mp4',
+        bargeInEnabled: true,
+      },
+      conversationPolicy: {
+        firstGreetingText: '안녕하세요 왕송길 어르신 AI통화 서비스 세요입니다!',
+        noResponsePromptText: '여보세요? 제 말 들리세요?',
+        maxDurationClosingText: '어르신 아쉽지만 오늘 통화는 여기까지에요.',
+        targetTurnCount: 5,
+        maxDurationSeconds: 600,
+      },
     });
+    expect(prisma.callSession.create).toHaveBeenCalledWith({
+      data: {
+        mode: CallSessionMode.AUTO_CONVERSATION,
+        currentStep: ConversationStep.GREETING,
+        targetTurnCount: 5,
+        startedAt: now,
+        expiresAt,
+      },
+    });
+    expect(prisma.conversationTurn.create).toHaveBeenCalledWith({
+      data: {
+        callSessionId: 'session-1',
+        role: ConversationRole.ASSISTANT,
+        text: '안녕하세요 왕송길 어르신 AI통화 서비스 세요입니다!',
+        status: ConversationTurnStatus.COMPLETED,
+        conversationStep: ConversationStep.GREETING,
+        completedAt: now,
+      },
+    });
+  });
+
+  it('returns an existing call session', async () => {
+    prisma.callSession.findUnique.mockResolvedValue(baseSession);
+
+    await expect(service.findOne('session-1')).resolves.toEqual(
+      baseSessionResponse,
+    );
   });
 
   it('throws when a call session does not exist', async () => {
@@ -407,6 +470,12 @@ describe('CallSessionsService', () => {
     await expect(service.end('session-1')).resolves.toEqual({
       id: 'session-1',
       status: 'ENDED',
+      mode: 'manual_recording',
+      currentStep: null,
+      turnCount: 0,
+      targetTurnCount: 5,
+      riskFlag: false,
+      riskType: null,
       startedAt: '2026-05-16T05:00:00.000Z',
       endedAt: '2026-05-16T05:00:00.000Z',
       expiresAt: '2026-05-16T05:10:00.000Z',

@@ -6,24 +6,56 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CallSessionStatus, ConversationRole } from '@prisma/client';
+import {
+  CallSessionMode,
+  CallSessionStatus,
+  ConversationRole,
+  ConversationStep,
+  ConversationTurnStatus,
+} from '@prisma/client';
 import type { CallSession, ConversationTurn } from '@prisma/client';
 import { DemoLoggerService } from '../common/demo-logger.service';
 import { OpenAiService } from '../openai/openai.service';
 import type { AssistantMessage } from '../openai/openai.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CallSessionResponseDto } from './call-session-response.dto';
+import {
+  AudioPolicyResponseDto,
+  CallSessionResponseDto,
+  ConversationPolicyResponseDto,
+} from './call-session-response.dto';
 import {
   ConversationTurnListResponseDto,
   ConversationTurnResponseDto,
 } from './conversation-turn-response.dto';
+import { CreateCallSessionDto } from './create-call-session.dto';
 import { VoiceTurnResponseDto } from './voice-turn-response.dto';
 
 const CALL_SESSION_DURATION_MS = 10 * 60 * 1000;
+const TARGET_AUTO_TURN_COUNT = 5;
 const RECENT_TURN_LIMIT = 12;
 const SUPPORTED_AUDIO_MIME_TYPE = 'audio/mp4';
 const ASSISTANT_FAILURE_MESSAGE =
   '응답을 만드는 중 문제가 생겼어요. 잠시 후 다시 말해 주세요.';
+const AUTO_CONVERSATION_FIRST_GREETING =
+  '안녕하세요 왕송길 어르신 AI통화 서비스 세요입니다!';
+const AUTO_CONVERSATION_NO_RESPONSE_PROMPT = '여보세요? 제 말 들리세요?';
+const AUTO_CONVERSATION_MAX_DURATION_CLOSING =
+  '어르신 아쉽지만 오늘 통화는 여기까지에요.';
+
+const AUTO_AUDIO_POLICY: AudioPolicyResponseDto = {
+  silenceTimeoutMs: 3000,
+  maxUtteranceMs: 30000,
+  uploadMimeType: SUPPORTED_AUDIO_MIME_TYPE,
+  bargeInEnabled: true,
+};
+
+const AUTO_CONVERSATION_POLICY: ConversationPolicyResponseDto = {
+  firstGreetingText: AUTO_CONVERSATION_FIRST_GREETING,
+  noResponsePromptText: AUTO_CONVERSATION_NO_RESPONSE_PROMPT,
+  maxDurationClosingText: AUTO_CONVERSATION_MAX_DURATION_CLOSING,
+  targetTurnCount: TARGET_AUTO_TURN_COUNT,
+  maxDurationSeconds: CALL_SESSION_DURATION_MS / 1000,
+};
 
 const RISK_KEYWORDS: Array<{ type: string; keywords: string[] }> = [
   {
@@ -54,20 +86,40 @@ export class CallSessionsService {
     private readonly demoLogger: DemoLoggerService,
   ) {}
 
-  async create(): Promise<CallSessionResponseDto> {
+  async create(
+    dto: CreateCallSessionDto = {},
+  ): Promise<CallSessionResponseDto> {
     const startedAt = new Date();
     const expiresAt = new Date(startedAt.getTime() + CALL_SESSION_DURATION_MS);
+    const mode = this.toPrismaSessionMode(dto.mode);
+    const isAutoConversation = mode === CallSessionMode.AUTO_CONVERSATION;
 
     const session = await this.prisma.callSession.create({
       data: {
+        mode,
+        currentStep: isAutoConversation ? ConversationStep.GREETING : null,
+        targetTurnCount: TARGET_AUTO_TURN_COUNT,
         startedAt,
         expiresAt,
       },
     });
 
+    if (isAutoConversation) {
+      await this.prisma.conversationTurn.create({
+        data: {
+          callSessionId: session.id,
+          role: ConversationRole.ASSISTANT,
+          text: AUTO_CONVERSATION_FIRST_GREETING,
+          status: ConversationTurnStatus.COMPLETED,
+          conversationStep: ConversationStep.GREETING,
+          completedAt: startedAt,
+        },
+      });
+    }
+
     this.demoLogger.callSessionCreated(session.id, session.expiresAt);
 
-    return this.toCallSessionResponse(session);
+    return this.toCallSessionResponse(session, isAutoConversation);
   }
 
   async findOne(id: string): Promise<CallSessionResponseDto> {
@@ -316,13 +368,57 @@ export class CallSessionsService {
     }));
   }
 
-  private toCallSessionResponse(session: CallSession): CallSessionResponseDto {
+  private toPrismaSessionMode(
+    mode: CreateCallSessionDto['mode'],
+  ): CallSessionMode {
+    return mode === 'auto_conversation'
+      ? CallSessionMode.AUTO_CONVERSATION
+      : CallSessionMode.MANUAL_RECORDING;
+  }
+
+  private toApiSessionMode(
+    mode?: CallSessionMode,
+  ): 'manual_recording' | 'auto_conversation' {
+    return mode === CallSessionMode.AUTO_CONVERSATION
+      ? 'auto_conversation'
+      : 'manual_recording';
+  }
+
+  private toApiConversationStep(step?: ConversationStep | null): string | null {
+    return step ? step.toLowerCase() : null;
+  }
+
+  private toCallSessionResponse(
+    session: CallSession,
+    includePolicies = false,
+  ): CallSessionResponseDto {
+    const sessionDetails = session as CallSession & {
+      mode?: CallSessionMode;
+      currentStep?: ConversationStep | null;
+      turnCount?: number;
+      targetTurnCount?: number;
+      riskFlag?: boolean;
+      riskType?: string | null;
+    };
+
     return {
       id: session.id,
       status: session.status,
+      mode: this.toApiSessionMode(sessionDetails.mode),
+      currentStep: this.toApiConversationStep(sessionDetails.currentStep),
+      turnCount: sessionDetails.turnCount ?? 0,
+      targetTurnCount: sessionDetails.targetTurnCount ?? TARGET_AUTO_TURN_COUNT,
+      riskFlag: sessionDetails.riskFlag ?? false,
+      riskType: sessionDetails.riskType ?? null,
       startedAt: session.startedAt.toISOString(),
       endedAt: session.endedAt?.toISOString() ?? null,
       expiresAt: session.expiresAt.toISOString(),
+      ...(includePolicies
+        ? {
+            audioPolicy: AUTO_AUDIO_POLICY,
+            conversationPolicy: AUTO_CONVERSATION_POLICY,
+          }
+        : {}),
     };
   }
 
