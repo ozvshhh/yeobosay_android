@@ -1,153 +1,172 @@
-# YeoboSay
-YeoboSay is an AI-powered voice conversation app designed to support elderly users through natural phone-based interaction. Using real-time speech recognition, LLM-based dialogue, and voice synthesis, the service provides emotional companionship, improves accessibility, and helps reduce loneliness among senior citizens.
+# YeoboSay 통합 레포지토리
 
-## 프로젝트 실행 방법
+YeoboSay는 어르신을 위한 AI 음성 통화 서비스입니다.
+전화 통화와 유사한 AI 대화, 정서적 말벗, 음성 인터랙션, 큰 글자 중심의 접근성을 목표로 합니다.
 
-### 필수 설치
+이 레포지토리는 앞으로 **통합 관리, 문서, API 계약, 배포 설정**을 담당합니다.
+Android 앱과 백엔드 기능 개발은 아래의 전용 레포지토리에서 진행합니다.
 
-- Git
-- Node.js 22 이상 권장
-- npm
-- Docker Desktop
-- Android Studio
-- Android Emulator 또는 실제 Android 기기
+## 레포지토리 구성
 
-Android 빌드에 필요한 JDK는 Android Studio에 포함된 버전을 사용해도 됩니다.
+| 영역 | 레포지토리 | 역할 |
+| --- | --- | --- |
+| Android | https://github.com/ozvshhh/yeobosay_android | Android 앱 개발 |
+| Backend | https://github.com/ozvshhh/yeobosay_backend | NestJS 백엔드 서버 개발 |
+| Integration | https://github.com/ozvshhh/YeoboSay | 문서, API 계약, 배포, 통합 테스트 관리 |
 
-### 프로젝트 내려받기
+## 이 레포지토리의 역할
+
+이 레포지토리는 다음 용도로 사용합니다.
+
+- 제품/기술 문서 관리
+- API 계약 및 공통 명세 관리
+- 통합 테스트와 배포 계획 관리
+- 데모 및 개발 환경 실행 가이드 관리
+- Android/Backend 레포지토리 간 작업 조율
+
+새로운 Android 기능 개발이나 백엔드 기능 개발은 이 레포지토리가 아니라 전용 레포지토리에서 진행합니다.
+
+## 디렉토리 안내
+
+```text
+YeoboSay/
+  contract/   API 계약과 공통 명세
+  docs/       제품, 디자인, 아키텍처, 개발 계획 문서
+  android/    기존 모노레포에서 분리되기 전 Android 스냅샷
+  backend/    기존 모노레포에서 분리되기 전 Backend 스냅샷
+```
+
+`android/`와 `backend/` 디렉토리는 레포지토리 분리 과정에서 남겨둔 기존 스냅샷입니다.
+신규 개발은 각각 `yeobosay_android`, `yeobosay_backend` 레포지토리에서 진행합니다.
+
+## 로컬 개발 환경
+
+### Android
+
+Android 앱은 전용 레포지토리를 내려받아 작업합니다.
 
 ```bash
-git clone https://github.com/ozvshhh/YeoboSay.git
-cd YeoboSay
-git checkout main
-git pull
+cd /Users/dlgkdms4660/DEV
+git clone https://github.com/ozvshhh/yeobosay_android.git
 ```
 
-특정 기능 브랜치로 시연해야 한다면 해당 브랜치로 이동합니다.
+Android Studio에서 `yeobosay_android` 디렉토리를 열고 Gradle Sync 후 실행합니다.
 
-```bash
-git checkout <branch-name>
-git pull
-```
-
-### 백엔드 실행
-
-```bash
-cd backend
-npm install
-cp .env.example .env
-```
-
-`backend/.env`에 OpenAI API Key를 설정합니다.
-
-```env
-OPENAI_API_KEY=your_openai_api_key
-```
-
-Docker Desktop을 실행한 뒤 PostgreSQL 컨테이너를 켭니다.
-
-```bash
-docker compose up -d
-npx prisma migrate dev
-npm run start
-```
-
-정상 실행 확인:
-
-```bash
-curl http://localhost:3000/health
-```
-
-### Android 앱 실행
-
-1. Android Studio에서 `android/` 디렉토리를 엽니다.
-2. Gradle Sync가 끝날 때까지 기다립니다.
-3. Emulator 또는 실제 Android 기기를 선택합니다.
-4. `app` Run Configuration으로 앱을 실행합니다.
-
-Android Emulator에서 로컬 백엔드에 접근할 때는 `localhost`가 아니라 아래 주소를 사용합니다.
+Android Emulator에서 로컬 백엔드 서버에 접근할 때는 아래 주소를 사용합니다.
 
 ```text
 http://10.0.2.2:3000
 ```
 
-실제 Android 기기로 테스트할 때는 `10.0.2.2`를 사용할 수 없습니다. 같은 Wi-Fi에 연결한 뒤 PC의 로컬 IP를 사용하거나 ngrok 같은 터널링 도구를 사용해야 합니다.
+실제 Android 기기로 테스트할 때는 `10.0.2.2`를 사용할 수 없습니다.
+다음 중 하나를 사용합니다.
 
-예시:
+- 배포된 HTTPS 백엔드 주소
+- 같은 Wi-Fi에 연결된 PC의 로컬 IP
+- ngrok 같은 임시 터널링 주소
 
-```text
-http://192.168.0.12:3000
-```
+### Backend
 
-또는:
-
-```bash
-ngrok http 3000
-```
-
-### 데모 시연 순서
-
-1. Docker Desktop을 실행합니다.
-2. 백엔드를 실행합니다.
+백엔드는 전용 레포지토리를 내려받아 작업합니다.
 
 ```bash
-cd backend
+cd /Users/dlgkdms4660/DEV
+git clone https://github.com/ozvshhh/yeobosay_backend.git
+cd yeobosay_backend
+npm install
+cp .env.example .env
+```
+
+`.env`에 필요한 환경변수를 설정합니다.
+특히 OpenAI API Key가 필요합니다.
+
+```env
+OPENAI_API_KEY=your_openai_api_key
+```
+
+로컬 DB와 백엔드를 실행합니다.
+
+```bash
 docker compose up -d
 npx prisma migrate dev
 npm run start
 ```
 
-3. Android Studio에서 앱을 실행합니다.
-4. 앱 첫 화면에서 `테스트 전화 요청`을 누릅니다.
-5. 전화 수신 화면이 표시되는지 확인합니다.
-6. `받기`를 누릅니다.
-7. 통화 화면에서 AI 첫 인사와 TTS 재생을 확인합니다.
-8. 녹음 버튼으로 사용자 발화를 전송합니다.
-9. AI 응답과 음성 재생을 확인합니다.
-10. 통화 종료 후 요약 화면을 확인합니다.
+서버가 정상 실행되었는지 확인합니다.
 
-### 자주 발생하는 문제
+```bash
+curl http://localhost:3000/health
+```
 
-#### Docker daemon 연결 실패
+## 데모 시연 체크리스트
+
+1. Docker Desktop을 실행합니다.
+2. `yeobosay_backend` 레포지토리에서 백엔드를 실행합니다.
+3. `GET /health` 응답이 정상인지 확인합니다.
+4. Android Studio에서 `yeobosay_android`를 엽니다.
+5. Android 앱의 API 주소가 현재 백엔드 환경을 바라보는지 확인합니다.
+6. Emulator 또는 실제 Android 기기에서 앱을 실행합니다.
+7. 앱에서 테스트 전화 요청 버튼을 누릅니다.
+8. 전화 수신 화면, 통화 화면, AI 음성 응답, 녹음 흐름, 통화 요약 화면을 확인합니다.
+
+## 자주 발생하는 문제
+
+### Docker Desktop이 꺼져 있는 경우
 
 ```text
 Cannot connect to the Docker daemon
 ```
 
-Docker Desktop이 꺼져 있는 상태입니다. Docker Desktop을 먼저 실행하세요.
+Docker Desktop을 먼저 실행해야 합니다.
 
-#### DB 연결 실패
+### PostgreSQL 5432 포트가 이미 사용 중인 경우
+
+```text
+Bind for 0.0.0.0:5432 failed: port is already allocated
+```
+
+다른 PostgreSQL 컨테이너가 이미 `5432` 포트를 사용 중인 상태입니다.
+기존 컨테이너를 종료하거나, 이미 실행 중인 DB를 그대로 사용하면 됩니다.
+
+### Prisma가 DB에 연결하지 못하는 경우
 
 ```text
 P1001: Can't reach database server at localhost:5432
 ```
 
-PostgreSQL 컨테이너가 실행되지 않은 상태입니다.
+백엔드 DB 컨테이너를 실행합니다.
 
 ```bash
-cd backend
 docker compose up -d
 ```
 
-#### 3000번 포트 충돌
+### 백엔드 3000번 포트가 이미 사용 중인 경우
 
 ```text
 listen EADDRINUSE: address already in use :::3000
 ```
 
-이미 3000번 포트를 사용하는 서버가 있습니다. 기존 서버를 종료하거나 백엔드 포트를 변경해야 합니다.
+다른 백엔드 프로세스가 이미 `3000` 포트를 사용 중입니다.
+기존 프로세스를 종료하거나 백엔드 포트를 변경해야 합니다.
 
-#### Android에서 서버 연결 실패
+### Android 앱이 백엔드에 연결하지 못하는 경우
 
 - Emulator: `http://10.0.2.2:3000` 사용
-- 실제 기기: PC 로컬 IP 또는 ngrok URL 사용
-- Android 앱에서 마이크 권한 허용 필요
+- 실제 기기: PC 로컬 네트워크 IP 또는 배포/터널링된 백엔드 URL 사용
+- Android 앱에서 마이크 권한이 허용되어 있는지 확인
 
-### 실행 전 체크리스트
+## API 계약 관리
 
-- Docker Desktop이 실행 중인지 확인
-- `backend/.env`에 `OPENAI_API_KEY`가 있는지 확인
-- PostgreSQL 컨테이너가 실행 중인지 확인
-- 백엔드가 `npm run start`로 정상 실행되는지 확인
-- Android API 주소가 테스트 환경에 맞는지 확인
-- Android 앱에서 마이크 권한을 허용했는지 확인
+API 변경은 `contract/`와 백엔드 Swagger 문서를 기준으로 조율합니다.
+
+권장 흐름은 다음과 같습니다.
+
+1. API 계약 또는 관련 문서를 먼저 수정합니다.
+2. `yeobosay_backend`에서 백엔드 API를 구현합니다.
+3. `yeobosay_android`에서 Android 클라이언트 호출부를 반영합니다.
+4. 현재 백엔드와 Android 앱을 연결해 통합 테스트를 진행합니다.
+
+## 참고
+
+이 레포지토리는 레포지토리 분리 작업이 완료될 때까지 기존 모노레포 소스 트리를 일부 포함할 수 있습니다.
+실제 구현 작업의 기준은 Android 전용 레포지토리와 Backend 전용 레포지토리로 봅니다.
